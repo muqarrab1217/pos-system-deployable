@@ -52,6 +52,7 @@ function LoginPage() {
 
       <form onSubmit={handleSubmit} className="login-form">
         <h3>Login Here</h3>
+        <p>Enter Details of your choice</p>
 
         <label htmlFor="username">Email</label>
         <input
