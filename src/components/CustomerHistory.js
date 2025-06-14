@@ -4,9 +4,9 @@ import "./CustomerHistory.css";
 import Header from "./Header";
 
 const CustomerHistory = () => {
-  const [customerHistory, setCustomerHistory] = useState([]);  // To store the fetched data
+  const [customerHistory, setCustomerHistory] = useState({});  // To store the fetched data
   const [searchTerm, setSearchTerm] = useState("");  // To store the search term
-  const [loading, setLoading] = useState(true);  // To handle loading state
+  const [loading, setLoading] = useState(false);  // To handle loading state
   const [error, setError] = useState(null);  // To handle errors
 
   // Function to format date in the desired format
@@ -24,34 +24,72 @@ const CustomerHistory = () => {
     return date.toLocaleString('en-GB', options).replace(',', '');  // 'en-GB' for UK format
   };
 
-  // Fetch data from the backend API
+  // Dummy data
+  const dummyData = [
+    {
+      customerNumber: '1234567890',
+      orders: [
+        {
+          orderId: 1,
+          items: 'Item A, Item B',
+          totalAmount: 50.75,
+          date: '2025-02-15T14:30:00',
+        },
+        {
+          orderId: 2,
+          items: 'Item C, Item D',
+          totalAmount: 32.50,
+          date: '2025-02-16T10:00:00',
+        },
+      ],
+    },
+    {
+      customerNumber: '0987654321',
+      orders: [
+        {
+          orderId: 3,
+          items: 'Item E, Item F',
+          totalAmount: 22.00,
+          date: '2025-02-14T16:45:00',
+        },
+        {
+          orderId: 4,
+          items: 'Item G, Item H',
+          totalAmount: 18.30,
+          date: '2025-02-17T12:15:00',
+        },
+      ],
+    },
+    {
+      customerNumber: '5555555555',
+      orders: [
+        {
+          orderId: 5,
+          items: 'Item I, Item J',
+          totalAmount: 40.20,
+          date: '2025-02-15T18:30:00',
+        },
+        {
+          orderId: 6,
+          items: 'Item K, Item L',
+          totalAmount: 25.90,
+          date: '2025-02-16T09:15:00',
+        },
+      ],
+    },
+  ];
+
+  // Fetch and set the dummy data instead of making an API call
   useEffect(() => {
-    const fetchCustomerHistory = async () => {
-      try {
-        const response = await fetch("http://localhost:8080/api/auth/customer-history");
-        if (!response.ok) {
-          throw new Error("Failed to fetch data");
-        }
-        const data = await response.json();
-
-        // Group the orders by customerNumber
-        const groupedData = data.reduce((acc, order) => {
-          if (!acc[order.customerNumber]) {
-            acc[order.customerNumber] = [];
-          }
-          acc[order.customerNumber].push(order);
-          return acc;
-        }, {});
-
-        setCustomerHistory(groupedData);  // Set the grouped data into state
-      } catch (error) {
-        setError(error.message);  // Set error message if fetch fails
-      } finally {
-        setLoading(false);  // Set loading to false after data is fetched
-      }
-    };
-
-    fetchCustomerHistory();
+    setLoading(true);
+    setTimeout(() => {  // Simulate a delay for loading state
+      const groupedData = dummyData.reduce((acc, customer) => {
+        acc[customer.customerNumber] = customer.orders;
+        return acc;
+      }, {});
+      setCustomerHistory(groupedData);  // Set the grouped data into state
+      setLoading(false);
+    }, 1000);
   }, []);
 
   // Filter customer data based on the search term

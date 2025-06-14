@@ -1,16 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from "react-router-dom";
-import { jsPDF } from "jspdf";  // Import jsPDF for PDF generation
-import 'jspdf-autotable';
-import axios from 'axios';
+import React, { useState } from 'react';
 import './Inventory.css';  // Importing the CSS for styling
 import Header from './Header';
 
 const InventoryManagement = () => {
-  const location = useLocation();
-  const role = location.state?.role;
-  const [inventory, setInventory] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [inventory, setInventory] = useState([
+    {
+      itemId: 1,
+      itemName: 'Burger',
+      unitPrice: 5.99,
+      stockLocation: 'Warehouse A',
+      quantity: 20,
+      description: 'A delicious beef burger with cheese.',
+      category: 'FastFood',
+      imagePath: '/images/burger.jpg'
+    },
+    {
+      itemId: 2,
+      itemName: 'Pizza',
+      unitPrice: 8.99,
+      stockLocation: 'Warehouse B',
+      quantity: 15,
+      description: 'A classic cheese pizza with tomato sauce.',
+      category: 'FastFood',
+      imagePath: '/images/pizza.jpg'
+    },
+    {
+      itemId: 3,
+      itemName: 'Ice Cream',
+      unitPrice: 2.99,
+      stockLocation: 'Warehouse C',
+      quantity: 30,
+      description: 'Vanilla and chocolate ice cream mix.',
+      category: 'Dessert',
+      imagePath: '/images/icecream.jpg'
+    },
+    {
+      itemId: 4,
+      itemName: 'Orange Juice',
+      unitPrice: 3.49,
+      stockLocation: 'Warehouse A',
+      quantity: 50,
+      description: 'Freshly squeezed orange juice.',
+      category: 'Drinks',
+      imagePath: '/images/orange_juice.jpg'
+    }
+  ]);
+
   const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [editItemIndex, setEditItemIndex] = useState(null);
   const [newItem, setNewItem] = useState({
@@ -20,7 +55,7 @@ const InventoryManagement = () => {
     quantity: '',
     description: '',
     category: '',
-    imagePath: ''  // Just the imagePath here
+    imagePath: ''
   });
 
   const [editItem, setEditItem] = useState({
@@ -31,80 +66,40 @@ const InventoryManagement = () => {
     quantity: '',
     description: '',
     category: '',
-    imagePath: ''  // For editing, imagePath will be used
+    imagePath: ''
   });
-
-  // Fetch inventory data
-  useEffect(() => {
-    axios
-      .get('http://localhost:8080/api/auth/inventory')  // Replace with your API endpoint
-      .then((response) => {
-        setInventory(response.data);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching inventory:', error);
-        setIsLoading(false);
-      });
-  }, []);
 
   // Handle adding a new item
   const handleAddItem = () => {
-    // Check if the image path is provided
     if (!newItem.imagePath) {
       alert("Please provide an image.");
       return;
     }
 
-    // Create the data in the required format
-    const dataToSend = {
-      item: {
-        name: newItem.itemName,
-        description: newItem.description,
-        itemPath: newItem.imagePath,  // Image path needs to be sent as itemPath
-        price: parseFloat(newItem.unitPrice),  // Convert to number if necessary
-        category: newItem.category
-      },
-      inventory: {
-        itemName: newItem.itemName,
-        unitPrice: newItem.unitPrice,
-        stockLocation: newItem.stockLocation,
-        quantity: parseInt(newItem.quantity, 10)  // Convert to integer if necessary
-      }
+    const newItemData = {
+      itemId: inventory.length + 1, // Simulate a unique ID
+      itemName: newItem.itemName,
+      unitPrice: parseFloat(newItem.unitPrice),
+      stockLocation: newItem.stockLocation,
+      quantity: parseInt(newItem.quantity, 10),
+      description: newItem.description,
+      category: newItem.category,
+      imagePath: newItem.imagePath
     };
 
-    console.log('Data to send:', dataToSend);
+    setInventory([...inventory, newItemData]);
 
-    // Send the data to the backend (make sure you're sending JSON, not FormData)
-    axios
-      .post('http://localhost:8080/api/auth/add-inventory', dataToSend, {
-        headers: {
-          'Content-Type': 'application/json',  // Ensure the correct content-type is sent
-        },
-      })
-      .then(() => {
-        // After the item is successfully added, fetch the updated inventory
-        return axios.get('http://localhost:8080/api/auth/inventory');
-      })
-      .then((response) => {
-        // Update the inventory state with the newly fetched inventory data
-        setInventory(response.data);  // This will re-render the table with the new inventory list
-
-        // Reset the form and close the add item form
-        setNewItem({
-          itemName: '',
-          unitPrice: '',
-          stockLocation: '',
-          quantity: '',
-          description: '',
-          category: '',
-          imagePath: ''  // Reset imagePath
-        });
-        setShowAddItemForm(false);  // Close the form after submission
-      })
-      .catch((error) => {
-        console.error('Error adding item to inventory:', error);
-      });
+    // Reset the form and close the add item form
+    setNewItem({
+      itemName: '',
+      unitPrice: '',
+      stockLocation: '',
+      quantity: '',
+      description: '',
+      category: '',
+      imagePath: ''
+    });
+    setShowAddItemForm(false); // Close the form after submission
   };
 
   // Handle editing an item
@@ -114,226 +109,52 @@ const InventoryManagement = () => {
   };
 
   // Handle updating an item
-  // Handle updating an item
-const handleUpdateItem = () => {
-  const { itemId, unitPrice, stockLocation, quantity } = editItem;
+  const handleUpdateItem = () => {
+    const updatedInventory = [...inventory];
+    updatedInventory[editItemIndex] = editItem;
+    setInventory(updatedInventory);
 
-  // Construct the API URL with query parameters
-  const updateUrl = `http://localhost:8080/api/auth/update-item-inventory/${itemId}?newUnitPrice=${unitPrice}&newStockLocation=${stockLocation}&newQuantity=${quantity}`;
-
-  // Make the API request to update the item
-  axios
-    .put(updateUrl)  // We use PUT since we're updating an existing resource
-    .then(() => {
-      // After the item is successfully updated, fetch the updated inventory
-      console.log("Inventory Updated");
-      return axios.get('http://localhost:8080/api/auth/inventory');
-    })
-    .then((response) => {
-      // Update the inventory state with the newly fetched inventory data
-      setInventory(response.data);  // This will re-render the table with the updated inventory
-
-      // Reset the edit state after updating
-      setEditItemIndex(null);
-      setEditItem({
-        itemId: '',
-        itemName: '',
-        unitPrice: '',
-        stockLocation: '',
-        quantity: '',
-        description: '',
-        category: '',
-        imagePath: ''  // Reset imagePath
-      });
-    })
-    .catch((error) => {
-      console.error('Error updating inventory item:', error);
+    setEditItemIndex(null);
+    setEditItem({
+      itemId: '',
+      itemName: '',
+      unitPrice: '',
+      stockLocation: '',
+      quantity: '',
+      description: '',
+      category: '',
+      imagePath: ''
     });
-};
-
+  };
 
   // Handle deleting an item
-  const handleDeleteItem = (index, itemId) => {
-    // Call the DELETE API to delete the inventory item
-    axios
-      .delete(`http://localhost:8080/api/auth/delete-inventory/${itemId}`)
-      .then(() => {
-        // Once the item is deleted, fetch the updated inventory
-        return axios.get('http://localhost:8080/api/auth/inventory');
-      })
-      .then((response) => {
-        // Update the inventory state with the newly fetched inventory data
-        setInventory(response.data);
-      })
-      .catch((error) => {
-        console.error('Error deleting inventory:', error);
-      });
+  const handleDeleteItem = (index) => {
+    const updatedInventory = inventory.filter((_, i) => i !== index);
+    setInventory(updatedInventory);
   };
 
   // Handle image path change for the new item
   const handleImagePathChange = (e) => {
     const file = e.target.files[0];
-
-    // Check if a file is selected
     if (!file) {
       alert("No image selected.");
       return;
     }
 
-    // Create a relative path for the image, assuming all images will be stored in the "public/images" folder
     const imagePath = `/images/${file.name}`;
-
-    // Update the newItem state to include the selected image path
-    setNewItem({ ...newItem, imagePath: imagePath });
+    setNewItem({ ...newItem, imagePath });
   };
-
-  const generateCombinedReport = () => {
-    // Import jsPDF and AutoTable
-    const { jsPDF } = require('jspdf');
-    require('jspdf-autotable');
-  
-    // Create a new PDF instance
-    const doc = new jsPDF();
-  
-    // Add the title
-    doc.setFontSize(18);
-    const pageWidth = doc.internal.pageSize.getWidth(); // Get the width of the page
-    const textWidth = doc.getTextWidth("Sales Report"); // Get the width of the text
-    const textX = (pageWidth - textWidth) / 2; // Calculate the X position to center the text
-    doc.text("Sales Report", textX, 20); // Use the calculated X position
-  
-    // Define table columns
-    const columns = [
-      'Item ID',
-      'Item Name',
-      'Unit Price',
-      'Stock Location',
-      'Quantity',
-      'Description',
-      'Category',
-    ];
-  
-    let nextY = 30; // Start position after the title
-  
-    // Section 1: Low Stock Report (Quantity < 50)
-    const lowStockItems = inventory.filter((item) => item.quantity < 50);
-    if (lowStockItems.length > 0) {
-      doc.setFontSize(16);
-      doc.text('Low Stock Report (Quantity < 50)', 14, nextY); // Section title
-      nextY += 10; // Adjust Y position
-      const lowStockRows = lowStockItems.map((item) => [
-        item.itemId,
-        item.itemName,
-        `$${parseFloat(item.unitPrice).toFixed(2)}`, // Format price to 2 decimals
-        item.stockLocation,
-        item.quantity,
-        item.description,
-        item.category,
-      ]);
-      doc.autoTable({
-        head: [columns],
-        body: lowStockRows,
-        startY: nextY,
-        styles: { fontSize: 10, cellPadding: 3 },
-        headStyles: { fillColor: [255, 99, 71] }, // Red header
-      });
-      nextY = doc.lastAutoTable.finalY + 10; // Update next Y position
-    } else {
-      doc.setFontSize(16);
-      doc.text('Low Stock Report (Quantity < 50)', 14, nextY); // Section title
-      nextY += 10; // Adjust Y position
-      doc.setFontSize(12);
-      doc.text('No items with quantity less than 50.', 14, nextY);
-      nextY += 10; // Adjust Y position for the next section
-    }
-  
-    // Section 2: Out of Stock Report (Quantity = 0)
-    const outOfStockItems = inventory.filter((item) => item.quantity === 0);
-    if (outOfStockItems.length > 0) {
-      doc.setFontSize(16);
-      doc.text('Out of Stock Report (Quantity = 0)', 14, nextY); // Section title
-      nextY += 10; // Adjust Y position
-      const outOfStockRows = outOfStockItems.map((item) => [
-        item.itemId,
-        item.itemName,
-        `$${parseFloat(item.unitPrice).toFixed(2)}`,
-        item.stockLocation,
-        item.quantity,
-        item.description,
-        item.category,
-      ]);
-      doc.autoTable({
-        head: [columns],
-        body: outOfStockRows,
-        startY: nextY,
-        styles: { fontSize: 10, cellPadding: 3 },
-        headStyles: { fillColor: [255, 165, 0] }, // Orange header
-      });
-      nextY = doc.lastAutoTable.finalY + 10; // Update next Y position
-    } else {
-      doc.setFontSize(16);
-      doc.text('Out of Stock Report (Quantity = 0)', 14, nextY); // Section title
-      nextY += 10; // Adjust Y position
-      doc.setFontSize(12);
-      doc.text('No items are out of stock.', 14, nextY);
-      nextY += 10; // Adjust Y position for the next section
-    }
-  
-    // Section 3: Warehouse Reports (Sorted by Warehouse A, B, C)
-    const warehouses = ['Warehouse A', 'Warehouse B', 'Warehouse C'];
-    const warehouseReports = warehouses.map((warehouse) => {
-      return {
-        warehouse,
-        items: inventory.filter((item) => item.stockLocation === warehouse),
-      };
-    });
-  
-    warehouseReports.forEach((warehouseReport) => {
-      if (warehouseReport.items.length > 0) {
-        doc.setFontSize(14);
-        doc.text(`${warehouseReport.warehouse}`, 14, nextY); // Add title for each warehouse
-        nextY += 10; // Adjust Y position
-        const warehouseRows = warehouseReport.items.map((item) => [
-          item.itemId,
-          item.itemName,
-          `$${parseFloat(item.unitPrice).toFixed(2)}`, // Format price to 2 decimals
-          item.stockLocation,
-          item.quantity,
-          item.description,
-          item.category,
-        ]);
-        doc.autoTable({
-          head: [columns],
-          body: warehouseRows,
-          startY: nextY,
-          styles: { fontSize: 10, cellPadding: 3 },
-          headStyles: { fillColor: [22, 160, 133] }, // Green header
-        });
-        nextY = doc.lastAutoTable.finalY + 15; // Update next Y position
-      }
-    });
-  
-    // Save the PDF
-    doc.save('combined_inventory_report.pdf');
-  };
-  
-  
 
   return (
     <div className="inventory-container">
-
-  <Header role={role} />
+      <Header />
 
       {/* Add Item Button */}
       <div className="add-item-section">
         <button className="add-item-btn" onClick={() => setShowAddItemForm(true)}>
           Add New Item
         </button>
-        <button className="add-item-btn" onClick={generateCombinedReport}>
-          Generate Report
-        </button>
       </div>
-
 
       {/* Add Item Form */}
       {showAddItemForm && (
@@ -364,13 +185,13 @@ const handleUpdateItem = () => {
               />
             </div>
 
-              {/* Stock Location */}
+            {/* Stock Location */}
             <div className="input-field">
               <label htmlFor="edit-stock-location">Stock Location</label>
               <select
                 id="edit-stock-location"
-                value={newItem.stockLocation} 
-                onChange={(e) => setNewItem({ ...newItem, stockLocation: e.target.value })} 
+                value={newItem.stockLocation}
+                onChange={(e) => setNewItem({ ...newItem, stockLocation: e.target.value })}
               >
                 <option value="">Select Stock Location</option>
                 <option value="Warehouse A">Warehouse A</option>
@@ -378,8 +199,6 @@ const handleUpdateItem = () => {
                 <option value="Warehouse C">Warehouse C</option>
               </select>
             </div>
-
-
 
             {/* Quantity */}
             <div className="input-field">
@@ -446,9 +265,7 @@ const handleUpdateItem = () => {
       {/* Inventory List Table */}
       <div className="inventory-list">
         <h2>Inventory</h2>
-        {isLoading ? (
-          <p>Loading...</p>
-        ) : inventory.length > 0 ? (
+        {inventory.length > 0 ? (
           <table className="inventory-table">
             <thead>
               <tr>
@@ -457,7 +274,6 @@ const handleUpdateItem = () => {
                 <th>Unit Price</th>
                 <th>Stock Location</th>
                 <th>Quantity</th>
-                <th>Stocked Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -469,15 +285,11 @@ const handleUpdateItem = () => {
                   <td>{typeof item.unitPrice === 'number' ? `$${item.unitPrice.toFixed(2)}` : 'N/A'}</td>
                   <td>{item.stockLocation}</td>
                   <td>{item.quantity}</td>
-                  <td>{new Date(item.stockedDate).toLocaleDateString()}</td>
                   <td>
                     <button className="edit-btn" onClick={() => handleEditItem(index)}>
                       Edit
                     </button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDeleteItem(index, item.itemId)}
-                    >
+                    <button className="delete-btn" onClick={() => handleDeleteItem(index)}>
                       Delete
                     </button>
                   </td>
@@ -533,7 +345,6 @@ const handleUpdateItem = () => {
               </select>
             </div>
 
-
             {/* Quantity */}
             <div className="input-field">
               <label htmlFor="edit-quantity">Quantity</label>
@@ -544,10 +355,6 @@ const handleUpdateItem = () => {
                 onChange={(e) => setEditItem({ ...editItem, quantity: e.target.value })}
               />
             </div>
-
-           
-
-            
           </div>
 
           <div className="button-field">

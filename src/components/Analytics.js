@@ -3,11 +3,22 @@ import '../App.css';
 import './Report.css';
 import Header from "./Header"
 import { Chart } from 'chart.js/auto';
+import { jsPDF } from 'jspdf';
 
 const App = () => {
-  // State to store the top-selling items fetched from the backend
-  const [topSellingItems, setTopSellingItems] = useState([]);
-  const [topWaiters, setTopWaiters] = useState([]); // State to store top waiters
+  // State to store the top-selling items and top waiters (using dummy data)
+  const [topSellingItems, setTopSellingItems] = useState([
+    { itemName: 'Burger', totalOrders: 150 },
+    { itemName: 'Pizza', totalOrders: 120 },
+    { itemName: 'Ice Cream', totalOrders: 200 },
+    { itemName: 'Orange Juice', totalOrders: 90 }
+  ]);
+  const [topWaiters, setTopWaiters] = useState([
+    { staffName: 'John Doe', totalOrders: 350 },
+    { staffName: 'Jane Smith', totalOrders: 300 },
+    { staffName: 'James Brown', totalOrders: 250 },
+    { staffName: 'Emily Clark', totalOrders: 200 }
+  ]);
 
   // Refs for the chart elements
   const topSellingChartRef = useRef(null);
@@ -16,36 +27,6 @@ const App = () => {
   const waiterOrdersChartInstance = useRef(null);
   const dailyWaiterAverageRef = useRef(null);
   const dailyWaiterAverageInstance = useRef(null);
-
-  // Fetch top-selling items from the API
-  useEffect(() => {
-    const fetchTopSellingItems = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/api/auth/top-selling');
-        const data = await response.json();
-        setTopSellingItems(data); // Set the state with the fetched data
-      } catch (error) {
-        console.error('Error fetching top-selling items:', error);
-      }
-    };
-
-    fetchTopSellingItems();
-  }, []);
-
-  // Fetch top waiters from the API
-  useEffect(() => {
-    const fetchTopWaiters = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/api/auth/top-staff'); // Update with the correct endpoint
-        const data = await response.json();
-        setTopWaiters(data); // Set the state with the fetched data
-      } catch (error) {
-        console.error('Error fetching top waiters:', error);
-      }
-    };
-
-    fetchTopWaiters();
-  }, []);
 
   useEffect(() => {
     drawCharts();
@@ -81,11 +62,11 @@ const App = () => {
     topSellingChartInstance.current = new Chart(topSellingCtx, {
       type: 'bar',
       data: {
-        labels: topSellingItems.map((item) => item.itemName), // Changed to match backend response
+        labels: topSellingItems.map((item) => item.itemName), // Using the dummy data
         datasets: [
           {
             label: 'Orders',
-            data: topSellingItems.map((item) => item.totalOrders), // Changed to match backend response
+            data: topSellingItems.map((item) => item.totalOrders), // Using the dummy data
             backgroundColor: ['#00796b', '#004d40', '#e0f7fa', '#80cbc4', '#26a69a'],
           },
         ],
@@ -98,16 +79,16 @@ const App = () => {
       },
     });
 
-    // Waiter Orders Chart (Pie) - Using `topWaiters`
+    // Waiter Orders Chart (Pie) - Using `topWaiters` (dummy data)
     const waiterOrdersCtx = waiterOrdersChartRef.current.getContext('2d');
     waiterOrdersChartInstance.current = new Chart(waiterOrdersCtx, {
       type: 'pie',
       data: {
-        labels: topWaiters.map((waiter) => waiter.staffName), // Use staffName for labels
+        labels: topWaiters.map((waiter) => waiter.staffName), // Using staffName for labels (from dummy data)
         datasets: [
           {
             label: 'Orders',
-            data: topWaiters.map((waiter) => waiter.totalOrders), // Use totalOrders for data
+            data: topWaiters.map((waiter) => waiter.totalOrders), // Using totalOrders for data
             backgroundColor: ['#00796b', '#004d40', '#26a69a', '#80cbc4'],
           },
         ],
@@ -143,13 +124,44 @@ const App = () => {
     });
   };
 
+  // Function to generate PDF for Top Selling Items
+  const generateTopSellingReport = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Top Selling Food Items Report', 20, 20);
+    doc.setFontSize(12);
+    doc.text('Rank  Item Name           Orders', 20, 40);
+
+    topSellingItems.forEach((item, index) => {
+      const yPosition = 50 + index * 10;
+      doc.text(`${index + 1}     ${item.itemName}         ${item.totalOrders}`, 20, yPosition);
+    });
+
+    doc.save('Top_Selling_Report.pdf');
+  };
+
+  // Function to generate PDF for Top Waiters
+  const generateTopWaitersReport = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Top Waiters Report', 20, 20);
+    doc.setFontSize(12);
+    doc.text('Rank  Waiter Name        Orders', 20, 40);
+
+    topWaiters.forEach((waiter, index) => {
+      const yPosition = 50 + index * 10;
+      doc.text(`${index + 1}     ${waiter.staffName}        ${waiter.totalOrders}`, 20, yPosition);
+    });
+
+    doc.save('Top_Waiters_Report.pdf');
+  };
+
   return (
     <div className="App">
-      
-      <Header/>
+      <Header />
 
       <main className="report-main">
-      <h2>Charts</h2>
+        <h2>Charts</h2>
         <section className="chart-section">
           <div className="bar-chart">
             <canvas ref={topSellingChartRef} id="topSellingChart"></canvas>
@@ -168,7 +180,7 @@ const App = () => {
               <h2>Top Selling Food Items</h2>
             </div>
             <div className="generate-report">
-              <button className="checkout-button">
+              <button className="checkout-button" onClick={generateTopSellingReport}>
                 Generate Report
               </button>
             </div>
@@ -200,7 +212,7 @@ const App = () => {
               <h2>Waiters Who Took the Most Orders</h2>
             </div>
             <div className="generate-report">
-              <button className="checkout-button">
+              <button className="checkout-button" onClick={generateTopWaitersReport}>
                 Generate Report
               </button>
             </div>
@@ -217,7 +229,7 @@ const App = () => {
               {topWaiters.map((waiter, index) => (
                 <tr key={index}>
                   <td>{index + 1}</td>
-                  <td>{waiter.staffName}</td> 
+                  <td>{waiter.staffName}</td>
                   <td>{waiter.totalOrders}</td>
                 </tr>
               ))}
